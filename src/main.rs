@@ -10,8 +10,8 @@ use eframe::egui;
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([1280.0, 820.0])
-            .with_min_inner_size([980.0, 600.0])
+            .with_inner_size([1280.0, 680.0])
+            .with_min_inner_size([980.0, 560.0])
             .with_title("ADB Wizard — монитор устройства"),
         ..Default::default()
     };

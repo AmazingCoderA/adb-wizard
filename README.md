@@ -2,6 +2,14 @@
 
 GUI-монитор Android-устройства через ADB на Rust. Показывает нагрузку, память, батарею, накопитель, сеть, топ процессов, экран телефона и даёт командную строку для `adb shell`. Есть кнопка публикации проекта на GitHub.
 
+**Репозиторий:** https://github.com/AmazingCoderA/adb-wizard
+
+![Обзор](docs/screenshot-overview.png)
+
+![Процессы](docs/screenshot-processes.png)
+
+> На скриншотах — демонстрационное устройство (mock ADB), а не реальный телефон.
+
 ## Возможности
 
 - **Обзор** — CPU, RAM, батарея (уровень, температура, статус), `/data`, uptime, скорость сети, живые графики.
@@ -26,7 +34,7 @@ GUI-монитор Android-устройства через ADB на Rust. Пок
 cargo run --release
 ```
 
-Готовый exe: `target\release\adb-wizard.exe`.
+Готовый exe: `target\release\adb-wizard.exe`. Готовые сборки также лежат в [Releases](https://github.com/AmazingCoderA/adb-wizard/releases/latest). Для работы exe всё равно нужен `adb` в `PATH` (или переменная `ADB`).
 
 Если `adb` лежит не в `PATH`, укажите путь через переменную окружения:
 
@@ -64,7 +72,12 @@ adb tcpip 5555
 3. `gh repo create <имя> --public/--private --source . --remote origin --push`.
 4. Показывает ссылку на созданный репозиторий.
 
-Если `gh` не установлен, приложение всё равно подготовит локальный git-репозиторий и покажет инструкции. Установите GitHub CLI, выполните `gh auth login`, затем нажмите кнопку ещё раз.
+Авторизация — любым из двух способов:
+
+- выполнить `gh auth login` один раз в терминале;
+- вставить Personal Access Token с правом `repo` в поле **Токен GitHub** (токен хранится только в памяти и не пишется на диск).
+
+Приложение ищет `gh` в `PATH`, в `%LOCALAPPDATA%\Programs\GitHub CLI\bin\gh.exe`, в `%ProgramFiles%\GitHub CLI` и рядом с exe. Если `gh` не установлен, приложение всё равно подготовит локальный git-репозиторий и покажет инструкции. Кнопка «Создать токен» открывает страницу GitHub с уже выбранным scope `repo`.
 
 Вручную:
 
