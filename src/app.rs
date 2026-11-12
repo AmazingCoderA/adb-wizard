@@ -96,6 +96,7 @@ pub struct App {
     repo_name: String,
     repo_desc: String,
     repo_private: bool,
+    repo_token: String,
     publish_log: Vec<String>,
     publish_busy: bool,
     published_url: Option<String>,
@@ -141,6 +142,7 @@ impl App {
             repo_name: "adb-wizard".to_string(),
             repo_desc: "Монитор Android-устройства через ADB: нагрузка, процессы, экран, консоль".to_string(),
             repo_private: false,
+            repo_token: String::new(),
             publish_log: Vec::new(),
             publish_busy: false,
             published_url: None,
@@ -355,6 +357,7 @@ impl App {
         let repo = self.repo_name.trim().to_string();
         let desc = self.repo_desc.trim().to_string();
         let private = self.repo_private;
+        let token = self.repo_token.trim().to_string();
         let tx = self.tx.clone();
         let (publish_tx, publish_rx) = channel::<PublishEvent>();
         std::thread::spawn(move || {
@@ -365,7 +368,7 @@ impl App {
             }
         });
         std::thread::spawn(move || {
-            publish::publish(&repo, &desc, private, &publish_tx);
+            publish::publish(&repo, &desc, private, &token, &publish_tx);
         });
     }
 
@@ -1071,6 +1074,15 @@ impl App {
                 ui.label("Видимость");
                 ui.checkbox(&mut self.repo_private, "приватный репозиторий");
                 ui.end_row();
+
+                ui.label("Токен GitHub");
+                ui.add(
+                    TextEdit::singleline(&mut self.repo_token)
+                        .password(true)
+                        .desired_width(420.0)
+                        .hint_text("необязательно: ghp_… с правами repo, не сохраняется"),
+                );
+                ui.end_row();
             });
 
         ui.add_space(8.0);
@@ -1086,6 +1098,11 @@ impl App {
             }
             if ui.button("Открыть github.com/new").clicked() {
                 let _ = webbrowser::open("https://github.com/new");
+            }
+            if ui.button("Создать токен").clicked() {
+                let _ = webbrowser::open(
+                    "https://github.com/settings/tokens/new?scopes=repo&description=ADB%20Wizard",
+                );
             }
             if let Some(url) = &self.published_url {
                 if ui.button("Открыть репозиторий").clicked() {
@@ -1121,6 +1138,7 @@ impl App {
                     ui.label("1. Скачайте и установите gh: https://cli.github.com/");
                     ui.label("2. В терминале выполните: gh auth login");
                     ui.label("3. Вернитесь сюда и нажмите «Проверить инструменты», затем «Опубликовать».");
+                    ui.label("Либо вставьте Personal Access Token в поле «Токен» (права repo).");
                     ui.label(
                         RichText::new(
                             "Локальный git-коммит кнопка сделает и без gh — проект будет готов к push.",

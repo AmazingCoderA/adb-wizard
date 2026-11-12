@@ -1,5 +1,6 @@
 //! Публикация проекта на GitHub через git + GitHub CLI (gh).
 
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::mpsc::Sender;
@@ -30,19 +31,60 @@ pub fn project_dir() -> PathBuf {
     }
 }
 
-fn command(program: &str) -> Command {
+/// Ищет gh в PATH, рядом с приложением и в стандартных папках установки.
+fn gh_program() -> PathBuf {
+    if let Ok(p) = std::env::var("GH_PATH") {
+        let p = PathBuf::from(p);
+        if p.exists() {
+            return p;
+        }
+    }
+
+    let local = std::env::var("LOCALAPPDATA").ok();
+    let program_files = std::env::var("ProgramFiles").ok();
+
+    let mut candidates = Vec::new();
+    if let Some(local) = local {
+        let base = PathBuf::from(local).join("Programs").join("GitHub CLI");
+        candidates.push(base.join("bin").join("gh.exe"));
+        candidates.push(base.join("gh.exe"));
+    }
+    if let Some(pf) = program_files {
+        candidates.push(PathBuf::from(pf).join("GitHub CLI").join("gh.exe"));
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join("gh.exe"));
+        }
+    }
+
+    for c in candidates {
+        if c.exists() {
+            return c;
+        }
+    }
+    PathBuf::from("gh")
+}
+
+fn run_path(
+    program: impl AsRef<OsStr>,
+    args: &[&str],
+    dir: &Path,
+    token: Option<&str>,
+) -> Result<String, String> {
     let mut cmd = Command::new(program);
     #[cfg(windows)]
     cmd.creation_flags(CREATE_NO_WINDOW);
-    cmd
-}
+    cmd.args(args).current_dir(dir);
+    if let Some(token) = token {
+        if !token.trim().is_empty() {
+            cmd.env("GH_TOKEN", token.trim());
+        }
+    }
 
-fn run(program: &str, args: &[&str], dir: &Path) -> Result<String, String> {
-    let out = command(program)
-        .args(args)
-        .current_dir(dir)
+    let out = cmd
         .output()
-        .map_err(|e| format!("Не удалось запустить {program}: {e}"))?;
+        .map_err(|e| format!("Не удалось запустить {}: {e}", cmd.get_program().to_string_lossy()))?;
 
     let stdout = String::from_utf8_lossy(&out.stdout).to_string();
     let stderr = String::from_utf8_lossy(&out.stderr).to_string();
@@ -59,12 +101,16 @@ fn run(program: &str, args: &[&str], dir: &Path) -> Result<String, String> {
     }
 }
 
+fn run(program: &str, args: &[&str], dir: &Path) -> Result<String, String> {
+    run_path(program, args, dir, None)
+}
+
 fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
     run("git", args, dir)
 }
 
-fn gh(dir: &Path, args: &[&str]) -> Result<String, String> {
-    run("gh", args, dir)
+fn gh(dir: &Path, args: &[&str], token: &str) -> Result<String, String> {
+    run_path(gh_program(), args, dir, Some(token))
 }
 
 pub fn tools() -> Tools {
@@ -73,7 +119,7 @@ pub fn tools() -> Tools {
         git: run("git", &["--version"], &dir)
             .ok()
             .map(|s| s.trim().to_string()),
-        gh: run("gh", &["--version"], &dir)
+        gh: run_path(gh_program(), &["--version"], &dir, None)
             .ok()
             .map(|s| s.lines().next().unwrap_or("").trim().to_string()),
     }
@@ -91,8 +137,14 @@ fn valid_repo_name(name: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
 }
 
-pub fn publish(repo: &str, description: &str, private: bool, tx: &Sender<PublishEvent>) {
-    let result = publish_inner(repo, description, private, tx);
+pub fn publish(
+    repo: &str,
+    description: &str,
+    private: bool,
+    token: &str,
+    tx: &Sender<PublishEvent>,
+) {
+    let result = publish_inner(repo, description, private, token, tx);
     let _ = tx.send(PublishEvent::Done(result));
 }
 
@@ -100,6 +152,7 @@ fn publish_inner(
     repo: &str,
     description: &str,
     private: bool,
+    token: &str,
     tx: &Sender<PublishEvent>,
 ) -> Result<String, String> {
     let dir = project_dir();
@@ -146,7 +199,7 @@ fn publish_inner(
     }
 
     // 2. gh
-    let gh_version = match run("gh", &["--version"], &dir) {
+    let gh_version = match run_path(gh_program(), &["--version"], &dir, None) {
         Ok(v) => v,
         Err(_) => {
             send(
@@ -164,10 +217,21 @@ fn publish_inner(
     };
     send(tx, format!("Найден {}", gh_version.lines().next().unwrap_or("gh")));
 
-    if gh(&dir, &["auth", "status"]).is_err() {
+    let has_token = !token.trim().is_empty();
+    if has_token {
+        send(tx, "Использую токен из поля (GH_TOKEN), авторизация не требуется.");
+    } else if gh(&dir, &["auth", "status"], "").is_err() {
         send(tx, "gh не авторизован.");
         send(tx, "Выполните в терминале: gh auth login");
-        return Err("Нужна авторизация GitHub CLI (gh auth login).".into());
+        send(tx, "Либо вставьте Personal Access Token в поле «Токен» (права repo).");
+        return Err("Нужна авторизация GitHub: gh auth login или токен.".into());
+    }
+
+    let login = gh(&dir, &["api", "user", "--jq", ".login"], token)
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+    if !login.is_empty() {
+        send(tx, format!("Аккаунт GitHub: {login}"));
     }
 
     // 3. Создание репозитория и push
@@ -200,13 +264,17 @@ fn publish_inner(
         git(&dir, &["push", "-u", "origin", &branch])?;
     } else {
         send(tx, format!("gh repo create {repo} {visibility} --push…"));
-        if let Err(e) = gh(&dir, &args) {
+        if let Err(e) = gh(&dir, &args, token) {
             let lower = e.to_lowercase();
             if lower.contains("already exists") || lower.contains("already_exists") {
                 send(tx, "Репозиторий уже существует — настраиваю remote и пушу.");
-                let login = gh(&dir, &["api", "user", "--jq", ".login"])?
-                    .trim()
-                    .to_string();
+                let login = if login.is_empty() {
+                    gh(&dir, &["api", "user", "--jq", ".login"], token)?
+                        .trim()
+                        .to_string()
+                } else {
+                    login.clone()
+                };
                 let url = format!("https://github.com/{login}/{repo}.git");
                 if has_origin {
                     let _ = git(&dir, &["remote", "set-url", "origin", &url]);
@@ -226,11 +294,17 @@ fn publish_inner(
         }
     }
 
-    let url = gh(&dir, &["repo", "view", repo, "--json", "url", "--jq", ".url"])
+    let url = gh(&dir, &["repo", "view", repo, "--json", "url", "--jq", ".url"], token)
         .ok()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| format!("https://github.com/{repo}"));
+        .unwrap_or_else(|| {
+            if login.is_empty() {
+                format!("https://github.com/{repo}")
+            } else {
+                format!("https://github.com/{login}/{repo}")
+            }
+        });
 
     send(tx, format!("Готово: {url}"));
     Ok(url)
