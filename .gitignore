@@ -1,0 +1,7 @@
+/target
+**/*.rs.bk
+screenshots/
+app-*.png
+*.log
+.idea/
+.vscode/
