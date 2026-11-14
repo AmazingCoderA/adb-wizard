@@ -49,6 +49,8 @@ All builds are produced by GitHub Actions from the tagged source. FreeBSD is bui
 | 🚀 **GitHub** | Publish the project with one button through GitHub CLI (`gh`) |
 | 🎨 **Themes & languages** | Five accent palettes and a Russian/English UI switch |
 
+![Processes](docs/screenshot-processes.png)
+
 ## 🎨 Themes
 
 Switch themes in the top-right corner of the tab row. The accent color drives the title, active tab, charts, process bars and primary buttons.
