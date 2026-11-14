@@ -75,10 +75,9 @@ fn adb_command() -> Command {
 }
 
 pub fn run_adb_raw(args: &[&str]) -> Result<Vec<u8>, String> {
-    let out = adb_command()
-        .args(args)
-        .output()
-        .map_err(|e| format!("Не удалось запустить adb: {e}. Установите platform-tools и добавьте adb в PATH."))?;
+    let out = adb_command().args(args).output().map_err(|e| {
+        format!("Не удалось запустить adb: {e}. Установите platform-tools и добавьте adb в PATH.")
+    })?;
 
     if !out.status.success() {
         let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();

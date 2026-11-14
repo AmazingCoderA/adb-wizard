@@ -52,10 +52,7 @@ pub fn split_marked(s: &str) -> HashMap<String, String> {
             if let Some(key) = current.take() {
                 map.insert(key, std::mem::take(&mut buf));
             }
-            let key = t
-                .trim_matches('_')
-                .trim_start_matches("ADBW_")
-                .to_string();
+            let key = t.trim_matches('_').trim_start_matches("ADBW_").to_string();
             current = Some(key);
         } else if current.is_some() {
             buf.push_str(line);
@@ -109,12 +106,7 @@ pub fn parse_meminfo(s: &str) -> Option<(u64, u64)> {
         let Some((k, v)) = line.split_once(':') else {
             continue;
         };
-        let kb = v
-            .trim()
-            .trim_end_matches("kB")
-            .trim()
-            .parse::<u64>()
-            .ok();
+        let kb = v.trim().trim_end_matches("kB").trim().parse::<u64>().ok();
         match k.trim() {
             "MemTotal" => total = kb,
             "MemAvailable" => available = kb,
@@ -374,11 +366,7 @@ pub fn parse_meminfo_top(s: &str) -> Vec<ProcStat> {
 
 pub fn parse_device_info(s: &str) -> DeviceInfo {
     let m = split_marked(s);
-    let get = |k: &str| {
-        m.get(k)
-            .map(|v| v.trim().to_string())
-            .unwrap_or_default()
-    };
+    let get = |k: &str| m.get(k).map(|v| v.trim().to_string()).unwrap_or_default();
 
     let size_raw = get("SIZE");
     let resolution = size_raw
@@ -535,10 +523,14 @@ mod tests {
 
     #[test]
     fn packages() {
-        let s = "package:com.example.video\npackage:com.android.chrome\npackage:com.example.video\n";
+        let s =
+            "package:com.example.video\npackage:com.android.chrome\npackage:com.example.video\n";
         assert_eq!(
             parse_packages(s),
-            vec!["com.android.chrome".to_string(), "com.example.video".to_string()]
+            vec![
+                "com.android.chrome".to_string(),
+                "com.example.video".to_string()
+            ]
         );
     }
 

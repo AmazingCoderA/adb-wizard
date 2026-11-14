@@ -229,7 +229,11 @@ const PRESETS: &[(&str, &str, &str)] = &[
     ("Свойства", "Properties", "getprop | head -n 80"),
     ("Диск", "Disk", "df -h"),
     ("Топ CPU", "Top CPU", "top -b -n 1 -m 15"),
-    ("Яркость", "Brightness", "settings get system screen_brightness"),
+    (
+        "Яркость",
+        "Brightness",
+        "settings get system screen_brightness",
+    ),
     ("Экран", "Display", "dumpsys display | head -n 40"),
 ];
 
@@ -391,7 +395,8 @@ impl App {
             ping_busy: false,
             tools: publish::tools(),
             repo_name: "adb-wizard".to_string(),
-            repo_desc: "Монитор Android-устройства через ADB: нагрузка, процессы, экран, консоль".to_string(),
+            repo_desc: "Монитор Android-устройства через ADB: нагрузка, процессы, экран, консоль"
+                .to_string(),
             repo_private: false,
             repo_token: String::new(),
             publish_log: Vec::new(),
@@ -510,12 +515,7 @@ impl App {
 
     fn stop_monitor(&mut self) {
         self.monitor = None;
-        self.status = tr(
-            self.lang,
-            "Мониторинг остановлен",
-            "Monitoring stopped",
-        )
-        .to_string();
+        self.status = tr(self.lang, "Мониторинг остановлен", "Monitoring stopped").to_string();
         self.status_error = false;
     }
 
@@ -899,11 +899,8 @@ impl App {
                         [img.width, img.height],
                         &img.rgba,
                     );
-                    self.screen_texture = Some(ctx.load_texture(
-                        "device_screen",
-                        color,
-                        TextureOptions::LINEAR,
-                    ));
+                    self.screen_texture =
+                        Some(ctx.load_texture("device_screen", color, TextureOptions::LINEAR));
                     self.screen_w = img.width;
                     self.screen_h = img.height;
                     self.screen_png = Some(img.png);
@@ -934,17 +931,13 @@ impl App {
                                 "{} {url}",
                                 tr(self.lang, "Публикация завершена:", "Published:")
                             ));
-                            self.status = format!(
-                                "{} {url}",
-                                tr(self.lang, "Опубликовано:", "Published:")
-                            );
+                            self.status =
+                                format!("{} {url}", tr(self.lang, "Опубликовано:", "Published:"));
                             self.status_error = false;
                         }
                         Err(e) => {
-                            self.publish_log.push(format!(
-                                "{} {e}",
-                                tr(self.lang, "Ошибка:", "Error:")
-                            ));
+                            self.publish_log
+                                .push(format!("{} {e}", tr(self.lang, "Ошибка:", "Error:")));
                             self.status = format!("GitHub: {e}");
                             self.status_error = true;
                         }
@@ -972,10 +965,7 @@ impl App {
                 TaskMsg::Packages(Err(e)) => {
                     self.apps_loading = false;
                     self.apps_loaded = true;
-                    self.status = format!(
-                        "{} {e}",
-                        tr(self.lang, "Приложения:", "Apps:")
-                    );
+                    self.status = format!("{} {e}", tr(self.lang, "Приложения:", "Apps:"));
                     self.status_error = true;
                 }
                 TaskMsg::PackageInfo(Ok(v)) => {
@@ -984,10 +974,7 @@ impl App {
                 }
                 TaskMsg::PackageInfo(Err(e)) => {
                     self.pkg_info_loading = false;
-                    self.pkg_info = Some(format!(
-                        "{} {e}",
-                        tr(self.lang, "Ошибка:", "Error:")
-                    ));
+                    self.pkg_info = Some(format!("{} {e}", tr(self.lang, "Ошибка:", "Error:")));
                 }
                 TaskMsg::TechInfo(Ok(v)) => {
                     self.tech_loading = false;
@@ -1011,7 +998,11 @@ impl App {
                 TaskMsg::Ping(Ok((adb_ping, net_ping))) => {
                     self.ping_busy = false;
                     self.ping_adb = Some(adb_ping);
-                    self.ping_net = if net_ping >= 0.0 { Some(net_ping) } else { None };
+                    self.ping_net = if net_ping >= 0.0 {
+                        Some(net_ping)
+                    } else {
+                        None
+                    };
                     self.status = match self.ping_net {
                         Some(n) => format!("ADB {adb_ping:.1} ms · Internet {n:.1} ms"),
                         None => format!("ADB {adb_ping:.1} ms · Internet: n/a"),
@@ -1057,12 +1048,8 @@ impl App {
                             .color(pal.accent),
                     );
                     ui.label(
-                        RichText::new(tr(
-                            self.lang,
-                            "монитор устройства",
-                            "device monitor",
-                        ))
-                        .color(pal.muted),
+                        RichText::new(tr(self.lang, "монитор устройства", "device monitor"))
+                            .color(pal.muted),
                     );
                     ui.separator();
 
@@ -1111,9 +1098,7 @@ impl App {
                         if ui.button(tr(self.lang, "Стоп", "Stop")).clicked() {
                             self.stop_monitor();
                         }
-                    } else if ui
-                        .button(tr(self.lang, "Мониторинг", "Monitor"))
-                        .clicked()
+                    } else if ui.button(tr(self.lang, "Мониторинг", "Monitor")).clicked()
                     {
                         self.start_monitor();
                     }
@@ -1127,14 +1112,10 @@ impl App {
                         self.run_ping();
                     }
                     if let Some(ms) = self.ping_adb {
-                        ui.label(
-                            RichText::new(format!("ADB {ms:.0} ms")).color(pal.muted),
-                        );
+                        ui.label(RichText::new(format!("ADB {ms:.0} ms")).color(pal.muted));
                     }
                     if let Some(ms) = self.ping_net {
-                        ui.label(
-                            RichText::new(format!("Net {ms:.0} ms")).color(pal.muted),
-                        );
+                        ui.label(RichText::new(format!("Net {ms:.0} ms")).color(pal.muted));
                     }
 
                     ui.label(RichText::new(tr(self.lang, "интервал", "interval")).color(pal.muted));
@@ -1156,10 +1137,7 @@ impl App {
                             .hint_text("192.168.1.50:5555")
                             .desired_width(170.0),
                     );
-                    if ui
-                        .button(tr(self.lang, "Подключить", "Connect"))
-                        .clicked()
-                    {
+                    if ui.button(tr(self.lang, "Подключить", "Connect")).clicked() {
                         self.connect_device();
                     }
                     ui.separator();
@@ -1213,15 +1191,16 @@ impl App {
             )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    let color = if self.status_error { pal.bad } else { pal.muted };
+                    let color = if self.status_error {
+                        pal.bad
+                    } else {
+                        pal.muted
+                    };
                     ui.label(RichText::new(&self.status).color(color));
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         ui.label(
-                            RichText::new(format!(
-                                "ADB Wizard {}",
-                                env!("CARGO_PKG_VERSION")
-                            ))
-                            .color(pal.muted),
+                            RichText::new(format!("ADB Wizard {}", env!("CARGO_PKG_VERSION")))
+                                .color(pal.muted),
                         );
                         if self.monitor.is_some() {
                             ui.spinner();
@@ -1292,10 +1271,7 @@ impl App {
                         .show_ui(ui, |ui| {
                             for theme in ThemeKind::ALL {
                                 if ui
-                                    .selectable_label(
-                                        self.theme == theme,
-                                        theme.label(self.lang),
-                                    )
+                                    .selectable_label(self.theme == theme, theme.label(self.lang))
                                     .clicked()
                                 {
                                     picked = theme;
@@ -1525,45 +1501,36 @@ impl App {
         ui.label(RichText::new(tr(self.lang, "Быстрые действия", "Quick actions")).strong());
         ui.horizontal_wrapped(|ui| {
             if ui.button(tr(self.lang, "Домой", "Home")).clicked() {
-                self.action(
-                    "input keyevent 3",
-                    tr(self.lang, "Домой", "Home"),
-                );
+                self.action("input keyevent 3", tr(self.lang, "Домой", "Home"));
             }
             if ui.button(tr(self.lang, "Назад", "Back")).clicked() {
-                self.action(
-                    "input keyevent 4",
-                    tr(self.lang, "Назад", "Back"),
-                );
+                self.action("input keyevent 4", tr(self.lang, "Назад", "Back"));
             }
             if ui.button(tr(self.lang, "Недавние", "Recents")).clicked() {
-                self.action(
-                    "input keyevent 187",
-                    tr(self.lang, "Недавние", "Recents"),
-                );
+                self.action("input keyevent 187", tr(self.lang, "Недавние", "Recents"));
             }
             if ui
                 .button(tr(self.lang, "Экран вкл/выкл", "Screen on/off"))
                 .clicked()
             {
-                self.action(
-                    "input keyevent 26",
-                    tr(self.lang, "Питание", "Power"),
-                );
+                self.action("input keyevent 26", tr(self.lang, "Питание", "Power"));
             }
             if ui.button(tr(self.lang, "Разбудить", "Wake")).clicked() {
-                self.action(
-                    "input keyevent 224",
-                    tr(self.lang, "Разбудить", "Wake"),
-                );
+                self.action("input keyevent 224", tr(self.lang, "Разбудить", "Wake"));
             }
-            if ui.button(tr(self.lang, "Громкость +", "Volume +")).clicked() {
+            if ui
+                .button(tr(self.lang, "Громкость +", "Volume +"))
+                .clicked()
+            {
                 self.action(
                     "input keyevent 24",
                     tr(self.lang, "Громкость +", "Volume +"),
                 );
             }
-            if ui.button(tr(self.lang, "Громкость −", "Volume −")).clicked() {
+            if ui
+                .button(tr(self.lang, "Громкость −", "Volume −"))
+                .clicked()
+            {
                 self.action(
                     "input keyevent 25",
                     tr(self.lang, "Громкость −", "Volume −"),
@@ -1574,9 +1541,7 @@ impl App {
                 self.request_screenshot();
             }
             if ui
-                .button(
-                    RichText::new(tr(self.lang, "Перезагрузить", "Reboot")).color(pal.bad),
-                )
+                .button(RichText::new(tr(self.lang, "Перезагрузить", "Reboot")).color(pal.bad))
                 .clicked()
             {
                 self.confirm_reboot = true;
@@ -1715,9 +1680,7 @@ impl App {
         }
 
         ui.horizontal(|ui| {
-            ui.label(
-                RichText::new(tr(lang, "Приложения пользователя", "User apps")).strong(),
-            );
+            ui.label(RichText::new(tr(lang, "Приложения пользователя", "User apps")).strong());
             if self.apps_loading {
                 ui.spinner();
             } else if ui
@@ -1779,7 +1742,10 @@ impl App {
                     let cmd = format!("am force-stop {pkg}");
                     self.action(&cmd, tr(lang, "Остановка приложения", "Force stop"));
                 }
-                if ui.button(tr(lang, "Очистить данные", "Clear data")).clicked() {
+                if ui
+                    .button(tr(lang, "Очистить данные", "Clear data"))
+                    .clicked()
+                {
                     let cmd = format!("pm clear {pkg}");
                     self.action(&cmd, tr(lang, "Очистка данных", "Clear data"));
                 }
@@ -1889,8 +1855,7 @@ impl App {
         let lang = self.lang;
         ui.horizontal(|ui| {
             ui.label(
-                RichText::new(tr(lang, "Техническая информация", "Technical information"))
-                    .strong(),
+                RichText::new(tr(lang, "Техническая информация", "Technical information")).strong(),
             );
             if self.tech_loading {
                 ui.spinner();
@@ -1974,10 +1939,7 @@ impl App {
                 ui.spinner();
                 ui.label(tr(lang, "снимаю…", "capturing…"));
             }
-            if ui
-                .button(tr(lang, "Сохранить PNG", "Save PNG"))
-                .clicked()
-            {
+            if ui.button(tr(lang, "Сохранить PNG", "Save PNG")).clicked() {
                 self.save_screenshot();
             }
             ui.separator();
@@ -2001,43 +1963,49 @@ impl App {
                 }
             }
         });
-        ui.collapsing(tr(lang, "Редактор кнопок", "Button editor"), |ui| {
-            let mut remove = None;
-            for (i, btn) in self.custom_buttons.iter_mut().enumerate() {
-                ui.horizontal(|ui| {
-                    ui.add(
-                        TextEdit::singleline(&mut btn.label)
-                            .desired_width(120.0)
-                            .hint_text(tr(lang, "Название", "Label")),
-                    );
-                    ui.add(
-                        TextEdit::singleline(&mut btn.command)
-                            .desired_width(320.0)
-                            .hint_text("input keyevent 85"),
-                    );
-                    if ui.button("✕").clicked() {
-                        remove = Some(i);
-                    }
-                });
-            }
-            if let Some(i) = remove {
-                self.custom_buttons.remove(i);
-            }
-            ui.horizontal(|ui| {
-                if ui.button(tr(lang, "Добавить кнопку", "Add button")).clicked() {
-                    self.custom_buttons.push(CustomButton {
-                        label: tr(lang, "Новая кнопка", "New button").to_string(),
-                        command: "input keyevent 3".to_string(),
+        ui.collapsing(
+            tr(lang, "Редактор кнопок", "Button editor"),
+            |ui| {
+                let mut remove = None;
+                for (i, btn) in self.custom_buttons.iter_mut().enumerate() {
+                    ui.horizontal(|ui| {
+                        ui.add(
+                            TextEdit::singleline(&mut btn.label)
+                                .desired_width(120.0)
+                                .hint_text(tr(lang, "Название", "Label")),
+                        );
+                        ui.add(
+                            TextEdit::singleline(&mut btn.command)
+                                .desired_width(320.0)
+                                .hint_text("input keyevent 85"),
+                        );
+                        if ui.button("✕").clicked() {
+                            remove = Some(i);
+                        }
                     });
                 }
-                if ui
-                    .button(tr(lang, "Сбросить пресеты", "Reset presets"))
-                    .clicked()
-                {
-                    self.custom_buttons = default_buttons();
+                if let Some(i) = remove {
+                    self.custom_buttons.remove(i);
                 }
-            });
-        });
+                ui.horizontal(|ui| {
+                    if ui
+                        .button(tr(lang, "Добавить кнопку", "Add button"))
+                        .clicked()
+                    {
+                        self.custom_buttons.push(CustomButton {
+                            label: tr(lang, "Новая кнопка", "New button").to_string(),
+                            command: "input keyevent 3".to_string(),
+                        });
+                    }
+                    if ui
+                        .button(tr(lang, "Сбросить пресеты", "Reset presets"))
+                        .clicked()
+                    {
+                        self.custom_buttons = default_buttons();
+                    }
+                });
+            },
+        );
         ui.separator();
 
         if let Some(tex) = &self.screen_texture {
@@ -2047,9 +2015,7 @@ impl App {
             let screen_w = self.screen_w;
             let screen_h = self.screen_h;
             if tex_size.x > 0.0 && tex_size.y > 0.0 {
-                let scale = (avail.x / tex_size.x)
-                    .min(avail.y / tex_size.y)
-                    .min(1.0);
+                let scale = (avail.x / tex_size.x).min(avail.y / tex_size.y).min(1.0);
                 let display = tex_size * scale;
                 ui.with_layout(Layout::top_down(Align::Center), |ui| {
                     ui.add_space(4.0);
@@ -2071,23 +2037,16 @@ impl App {
                             );
                         }
                     }
-                    ui.label(
-                        RichText::new(format!("{screen_w}×{screen_h}"))
-                            .color(pal.muted),
-                    );
+                    ui.label(RichText::new(format!("{screen_w}×{screen_h}")).color(pal.muted));
                 });
             }
         } else {
             ui.vertical_centered(|ui| {
                 ui.add_space(40.0);
                 ui.label(
-                    RichText::new(tr(
-                        self.lang,
-                        "Экран ещё не снят",
-                        "No screenshot yet",
-                    ))
-                    .size(18.0)
-                    .strong(),
+                    RichText::new(tr(self.lang, "Экран ещё не снят", "No screenshot yet"))
+                        .size(18.0)
+                        .strong(),
                 );
                 ui.label(tr(
                     self.lang,
@@ -2195,13 +2154,9 @@ impl App {
     fn github(&mut self, ui: &mut egui::Ui) {
         let pal = self.palette();
         ui.label(
-            RichText::new(tr(
-                self.lang,
-                "Публикация на GitHub",
-                "Publish to GitHub",
-            ))
-            .size(19.0)
-            .strong(),
+            RichText::new(tr(self.lang, "Публикация на GitHub", "Publish to GitHub"))
+                .size(19.0)
+                .strong(),
         );
         ui.label(tr(
             self.lang,
@@ -2263,13 +2218,9 @@ impl App {
             } else if ui
                 .add(
                     egui::Button::new(
-                        RichText::new(tr(
-                            self.lang,
-                            "Опубликовать на GitHub",
-                            "Publish to GitHub",
-                        ))
-                        .strong()
-                        .color(pal.on_accent),
+                        RichText::new(tr(self.lang, "Опубликовать на GitHub", "Publish to GitHub"))
+                            .strong()
+                            .color(pal.on_accent),
                     )
                     .fill(pal.accent),
                 )
@@ -2293,7 +2244,10 @@ impl App {
             {
                 let _ = webbrowser::open("https://github.com/new");
             }
-            if ui.button(tr(self.lang, "Создать токен", "Create token")).clicked() {
+            if ui
+                .button(tr(self.lang, "Создать токен", "Create token"))
+                .clicked()
+            {
                 let _ = webbrowser::open(
                     "https://github.com/settings/tokens/new?scopes=repo&description=ADB%20Wizard",
                 );
@@ -2313,8 +2267,7 @@ impl App {
             match &self.tools.git {
                 Some(v) => ui.label(RichText::new(format!("git: {v}")).color(pal.good)),
                 None => ui.label(
-                    RichText::new(tr(self.lang, "git: не найден", "git: not found"))
-                        .color(pal.bad),
+                    RichText::new(tr(self.lang, "git: не найден", "git: not found")).color(pal.bad),
                 ),
             };
             ui.separator();
@@ -2406,36 +2359,32 @@ impl App {
             return;
         }
         let pal = self.palette();
-        egui::Window::new(tr(
-            self.lang,
-            "Перезагрузить устройство?",
-            "Reboot device?",
-        ))
-        .collapsible(false)
-        .resizable(false)
-        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-        .show(ctx, |ui| {
-            ui.label(tr(
-                self.lang,
-                "Устройство перезагрузится. Несохранённые данные могут пропасть.",
-                "The device will reboot. Unsaved data may be lost.",
-            ));
-            ui.add_space(8.0);
-            ui.horizontal(|ui| {
-                if ui.button(tr(self.lang, "Отмена", "Cancel")).clicked() {
-                    self.confirm_reboot = false;
-                }
-                if ui
-                    .button(
-                        RichText::new(tr(self.lang, "Перезагрузить", "Reboot")).color(pal.bad),
-                    )
-                    .clicked()
-                {
-                    self.confirm_reboot = false;
-                    self.action("reboot", tr(self.lang, "Перезагрузка", "Reboot"));
-                }
+        egui::Window::new(tr(self.lang, "Перезагрузить устройство?", "Reboot device?"))
+            .collapsible(false)
+            .resizable(false)
+            .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                ui.label(tr(
+                    self.lang,
+                    "Устройство перезагрузится. Несохранённые данные могут пропасть.",
+                    "The device will reboot. Unsaved data may be lost.",
+                ));
+                ui.add_space(8.0);
+                ui.horizontal(|ui| {
+                    if ui.button(tr(self.lang, "Отмена", "Cancel")).clicked() {
+                        self.confirm_reboot = false;
+                    }
+                    if ui
+                        .button(
+                            RichText::new(tr(self.lang, "Перезагрузить", "Reboot")).color(pal.bad),
+                        )
+                        .clicked()
+                    {
+                        self.confirm_reboot = false;
+                        self.action("reboot", tr(self.lang, "Перезагрузка", "Reboot"));
+                    }
+                });
             });
-        });
     }
 }
 
@@ -2578,7 +2527,10 @@ fn sparkline(
         })
         .collect();
 
-    painter.add(egui::Shape::line(points.clone(), Stroke::new(2.0_f32, color)));
+    painter.add(egui::Shape::line(
+        points.clone(),
+        Stroke::new(2.0_f32, color),
+    ));
     if let Some(last) = points.last() {
         painter.circle_filled(*last, 5.0, color.gamma_multiply(0.25));
         painter.circle_filled(*last, 2.5, color);
@@ -2632,11 +2584,7 @@ fn process_list(
                     } else {
                         format!("{:.1} {unit}", p.value)
                     };
-                    ui.label(
-                        RichText::new(format!("{value:>8}"))
-                            .monospace()
-                            .strong(),
-                    );
+                    ui.label(RichText::new(format!("{value:>8}")).monospace().strong());
                     ui.add(
                         egui::ProgressBar::new((p.value / max).clamp(0.0, 1.0))
                             .fill(color)

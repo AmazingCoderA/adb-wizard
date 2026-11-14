@@ -83,9 +83,12 @@ fn run_path(
         }
     }
 
-    let out = cmd
-        .output()
-        .map_err(|e| format!("Не удалось запустить {}: {e}", cmd.get_program().to_string_lossy()))?;
+    let out = cmd.output().map_err(|e| {
+        format!(
+            "Не удалось запустить {}: {e}",
+            cmd.get_program().to_string_lossy()
+        )
+    })?;
 
     let stdout = String::from_utf8_lossy(&out.stdout).to_string();
     let stderr = String::from_utf8_lossy(&out.stderr).to_string();
@@ -189,8 +192,9 @@ fn publish_inner(
 
     if !dir.join(".git").exists() {
         send(tx, "git init…");
-        git(&dir, &["init", "-b", "main"])
-            .or_else(|_| git(&dir, &["init"]).and_then(|_| git(&dir, &["checkout", "-b", "main"])))?;
+        git(&dir, &["init", "-b", "main"]).or_else(|_| {
+            git(&dir, &["init"]).and_then(|_| git(&dir, &["checkout", "-b", "main"]))
+        })?;
         send(
             tx,
             tr(
@@ -215,7 +219,14 @@ fn publish_inner(
         let _ = git(&dir, &["config", "user.name", "ADB Wizard"]);
     }
     if git(&dir, &["config", "user.email"]).is_err() {
-        let _ = git(&dir, &["config", "user.email", "adb-wizard@users.noreply.github.com"]);
+        let _ = git(
+            &dir,
+            &[
+                "config",
+                "user.email",
+                "adb-wizard@users.noreply.github.com",
+            ],
+        );
     }
 
     send(tx, "git add -A…");
@@ -245,7 +256,14 @@ fn publish_inner(
                     "GitHub CLI (gh) not found. The local repository is ready to publish.",
                 ),
             );
-            send(tx, tr(lang, "Скачайте gh: https://cli.github.com/", "Download gh: https://cli.github.com/"));
+            send(
+                tx,
+                tr(
+                    lang,
+                    "Скачайте gh: https://cli.github.com/",
+                    "Download gh: https://cli.github.com/",
+                ),
+            );
             send(
                 tx,
                 tr(
@@ -290,7 +308,10 @@ fn publish_inner(
             ),
         );
     } else if gh(&dir, &["auth", "status"], "").is_err() {
-        send(tx, tr(lang, "gh не авторизован.", "gh is not authenticated."));
+        send(
+            tx,
+            tr(lang, "gh не авторизован.", "gh is not authenticated."),
+        );
         send(
             tx,
             tr(
@@ -328,15 +349,7 @@ fn publish_inner(
     // 3. Создание репозитория и push
     let visibility = if private { "--private" } else { "--public" };
     let mut args = vec![
-        "repo",
-        "create",
-        repo,
-        visibility,
-        "--source",
-        ".",
-        "--remote",
-        "origin",
-        "--push",
+        "repo", "create", repo, visibility, "--source", ".", "--remote", "origin", "--push",
     ];
     if !description.trim().is_empty() {
         args.push("--description");
@@ -399,17 +412,21 @@ fn publish_inner(
         }
     }
 
-    let url = gh(&dir, &["repo", "view", repo, "--json", "url", "--jq", ".url"], token)
-        .ok()
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| {
-            if login.is_empty() {
-                format!("https://github.com/{repo}")
-            } else {
-                format!("https://github.com/{login}/{repo}")
-            }
-        });
+    let url = gh(
+        &dir,
+        &["repo", "view", repo, "--json", "url", "--jq", ".url"],
+        token,
+    )
+    .ok()
+    .map(|s| s.trim().to_string())
+    .filter(|s| !s.is_empty())
+    .unwrap_or_else(|| {
+        if login.is_empty() {
+            format!("https://github.com/{repo}")
+        } else {
+            format!("https://github.com/{login}/{repo}")
+        }
+    });
 
     send(tx, format!("{} {url}", tr(lang, "Готово:", "Done:")));
     Ok(url)
