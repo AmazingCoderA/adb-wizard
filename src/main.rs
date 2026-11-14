@@ -2,6 +2,7 @@
 
 mod adb;
 mod app;
+mod i18n;
 mod parsers;
 mod publish;
 

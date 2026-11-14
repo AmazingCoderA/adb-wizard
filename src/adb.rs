@@ -2,8 +2,8 @@
 
 use crate::parsers::{
     parse_battery, parse_cpuinfo, parse_device_info, parse_devices, parse_df, parse_meminfo,
-    parse_meminfo_top, parse_net, parse_uptime, split_marked, BatteryInfo, Device, DeviceInfo,
-    ProcStat,
+    parse_meminfo_top, parse_net, parse_packages, parse_ping_avg, parse_proc_stat, parse_uptime,
+    split_marked, BatteryInfo, Device, DeviceInfo, ProcStat,
 };
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -18,6 +18,7 @@ use std::os::windows::process::CommandExt;
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 const SNAPSHOT_SCRIPT: &str = "\
+echo __ADBW_STAT__; head -n 1 /proc/stat; \
 echo __ADBW_MEM__; cat /proc/meminfo; \
 echo __ADBW_UPTIME__; cat /proc/uptime; \
 echo __ADBW_DF__; df -k /data; \
@@ -43,6 +44,8 @@ pub struct Snapshot {
     pub time: String,
     pub battery: BatteryInfo,
     pub cpu_percent: Option<f32>,
+    pub cpu_total_ticks: Option<u64>,
+    pub cpu_idle_ticks: Option<u64>,
     pub cores: usize,
     pub ram_total_kb: Option<u64>,
     pub ram_used_kb: Option<u64>,
@@ -114,6 +117,46 @@ pub fn fetch_info(serial: &str) -> Result<DeviceInfo, String> {
     Ok(parse_device_info(&out))
 }
 
+pub fn list_packages(serial: &str) -> Result<Vec<String>, String> {
+    let out = shell(serial, "pm list packages -3")?;
+    Ok(parse_packages(&out))
+}
+
+pub fn package_info(serial: &str, package: &str) -> Result<String, String> {
+    if !package
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_')
+    {
+        return Err("Недопустимое имя пакета".to_string());
+    }
+    shell(serial, &format!("dumpsys package {package} | head -n 180"))
+}
+
+pub fn tech_info(serial: &str) -> Result<String, String> {
+    let script = "\
+echo '== getprop =='; getprop; echo; \
+echo '== ip addr =='; ip addr show 2>/dev/null; echo; \
+echo '== df -h =='; df -h; echo; \
+echo '== uname =='; uname -a; echo; \
+echo '== battery =='; dumpsys battery; echo; \
+echo '== display =='; dumpsys display | head -n 40; echo; \
+echo '== cpu =='; cat /proc/cpuinfo | head -n 40";
+    shell(serial, script)
+}
+
+/// Пинг до устройства через adb (полный round-trip команды), мс.
+pub fn ping_adb(serial: &str) -> Result<f32, String> {
+    let start = std::time::Instant::now();
+    shell(serial, "echo ok")?;
+    Ok(start.elapsed().as_secs_f32() * 1000.0)
+}
+
+/// Пинг из устройства до 8.8.8.8, среднее значение в мс.
+pub fn ping_net(serial: &str) -> Result<f32, String> {
+    let out = shell(serial, "ping -c 3 -W 2 8.8.8.8 2>&1")?;
+    parse_ping_avg(&out).ok_or_else(|| out.trim().to_string())
+}
+
 pub fn collect_snapshot(serial: &str) -> Snapshot {
     let mut snap = Snapshot {
         time: chrono::Local::now().format("%H:%M:%S").to_string(),
@@ -130,6 +173,12 @@ pub fn collect_snapshot(serial: &str) -> Snapshot {
 
     let m = split_marked(&out);
 
+    if let Some(v) = m.get("STAT") {
+        if let Some((total, idle)) = parse_proc_stat(v) {
+            snap.cpu_total_ticks = Some(total);
+            snap.cpu_idle_ticks = Some(idle);
+        }
+    }
     if let Some(v) = m.get("MEM") {
         if let Some((total, used)) = parse_meminfo(v) {
             snap.ram_total_kb = Some(total);

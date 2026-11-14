@@ -141,6 +141,49 @@ pub fn parse_uptime(s: &str) -> Option<u64> {
         .map(|v| v as u64)
 }
 
+/// Возвращает (всего тиков CPU, тиков простоя) из первой строки `/proc/stat`.
+pub fn parse_proc_stat(s: &str) -> Option<(u64, u64)> {
+    let line = s.lines().find(|l| l.trim_start().starts_with("cpu "))?;
+    let vals: Vec<u64> = line
+        .split_whitespace()
+        .skip(1)
+        .filter_map(|x| x.parse::<u64>().ok())
+        .collect();
+    if vals.len() < 4 {
+        return None;
+    }
+    let total: u64 = vals.iter().sum();
+    let idle = vals.get(3).copied().unwrap_or(0) + vals.get(4).copied().unwrap_or(0);
+    Some((total, idle))
+}
+
+/// Список пакетов из вывода `pm list packages`.
+pub fn parse_packages(s: &str) -> Vec<String> {
+    let mut out: Vec<String> = s
+        .lines()
+        .filter_map(|l| l.trim().strip_prefix("package:"))
+        .map(|p| p.trim().to_string())
+        .filter(|p| !p.is_empty())
+        .collect();
+    out.sort();
+    out.dedup();
+    out
+}
+
+/// Средний ping из вывода `ping` (строка `rtt min/avg/max/mdev = ... ms`).
+pub fn parse_ping_avg(s: &str) -> Option<f32> {
+    for line in s.lines() {
+        if let Some(rest) = line.split("min/avg/max").nth(1) {
+            let nums = rest.split('=').nth(1)?.trim();
+            let avg = nums.split('/').nth(1)?;
+            if let Ok(v) = avg.trim().parse::<f32>() {
+                return Some(v);
+            }
+        }
+    }
+    None
+}
+
 /// Возвращает (занято КБ, всего КБ).
 pub fn parse_df(s: &str) -> Option<(u64, u64)> {
     let line = s.lines().filter(|l| !l.trim().is_empty()).last()?;
@@ -482,5 +525,26 @@ mod tests {
     fn net() {
         let s = "Inter-|   Receive |  Transmit\n face |bytes packets errs drop fifo frame compressed multicast|bytes packets errs drop fifo colls carrier compressed\n    lo: 1000 1 0 0 0 0 0 0 1000 1 0 0 0 0 0 0\n  wlan0: 5000 2 0 0 0 0 0 0 7000 3 0 0 0 0 0 0\n";
         assert_eq!(parse_net(s), Some((5000, 7000)));
+    }
+
+    #[test]
+    fn proc_stat() {
+        let s = "cpu  100 20 30 400 50 10 5 0 0 0\ncpu0 50 10 15 200 25 5 2 0 0 0\n";
+        assert_eq!(parse_proc_stat(s), Some((615, 450)));
+    }
+
+    #[test]
+    fn packages() {
+        let s = "package:com.example.video\npackage:com.android.chrome\npackage:com.example.video\n";
+        assert_eq!(
+            parse_packages(s),
+            vec!["com.android.chrome".to_string(), "com.example.video".to_string()]
+        );
+    }
+
+    #[test]
+    fn ping() {
+        let s = "PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.\n--- 8.8.8.8 ping statistics ---\n3 packets transmitted, 3 received, 0% packet loss, time 2003ms\nrtt min/avg/max/mdev = 12.345/15.678/18.901/1.234 ms\n";
+        assert!((parse_ping_avg(s).unwrap() - 15.678).abs() < 0.01);
     }
 }

@@ -1,5 +1,6 @@
 //! Публикация проекта на GitHub через git + GitHub CLI (gh).
 
+use crate::i18n::{tr, Lang};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -142,9 +143,10 @@ pub fn publish(
     description: &str,
     private: bool,
     token: &str,
+    lang: Lang,
     tx: &Sender<PublishEvent>,
 ) {
-    let result = publish_inner(repo, description, private, token, tx);
+    let result = publish_inner(repo, description, private, token, lang, tx);
     let _ = tx.send(PublishEvent::Done(result));
 }
 
@@ -153,29 +155,59 @@ fn publish_inner(
     description: &str,
     private: bool,
     token: &str,
+    lang: Lang,
     tx: &Sender<PublishEvent>,
 ) -> Result<String, String> {
     let dir = project_dir();
-    send(tx, format!("Папка проекта: {}", dir.display()));
+    send(
+        tx,
+        format!(
+            "{} {}",
+            tr(lang, "Папка проекта:", "Project folder:"),
+            dir.display()
+        ),
+    );
 
     if !valid_repo_name(repo) {
-        return Err("Имя репозитория может содержать только латиницу, цифры, '-', '_' и '.'".into());
+        return Err(tr(
+            lang,
+            "Имя репозитория может содержать только латиницу, цифры, '-', '_' и '.'",
+            "Repository name may contain only ASCII letters, digits, '-', '_' and '.'",
+        )
+        .into());
     }
 
     // 1. git
     if run("git", &["--version"], &dir).is_err() {
-        return Err(
-            "git не найден. Установите Git for Windows: https://git-scm.com/download/win".into(),
-        );
+        return Err(tr(
+            lang,
+            "git не найден. Установите Git for Windows: https://git-scm.com/download/win",
+            "git not found. Install Git: https://git-scm.com/downloads",
+        )
+        .into());
     }
 
     if !dir.join(".git").exists() {
         send(tx, "git init…");
         git(&dir, &["init", "-b", "main"])
             .or_else(|_| git(&dir, &["init"]).and_then(|_| git(&dir, &["checkout", "-b", "main"])))?;
-        send(tx, "Локальный git-репозиторий создан (ветка main).");
+        send(
+            tx,
+            tr(
+                lang,
+                "Локальный git-репозиторий создан (ветка main).",
+                "Local git repository created (branch main).",
+            ),
+        );
     } else {
-        send(tx, "Локальный git-репозиторий уже существует.");
+        send(
+            tx,
+            tr(
+                lang,
+                "Локальный git-репозиторий уже существует.",
+                "Local git repository already exists.",
+            ),
+        );
     }
 
     // Если имя/почта не заданы глобально — задаём локально, иначе commit не пройдёт.
@@ -191,11 +223,14 @@ fn publish_inner(
 
     let status = git(&dir, &["status", "--porcelain"])?;
     if status.trim().is_empty() {
-        send(tx, "Нет изменений для коммита.");
+        send(
+            tx,
+            tr(lang, "Нет изменений для коммита.", "No changes to commit."),
+        );
     } else {
         send(tx, "git commit…");
         git(&dir, &["commit", "-m", "ADB Wizard: initial commit"])?;
-        send(tx, "Коммит создан.");
+        send(tx, tr(lang, "Коммит создан.", "Commit created."));
     }
 
     // 2. gh
@@ -204,34 +239,90 @@ fn publish_inner(
         Err(_) => {
             send(
                 tx,
-                "GitHub CLI (gh) не найден. Локальный репозиторий уже готов к публикации.",
+                tr(
+                    lang,
+                    "GitHub CLI (gh) не найден. Локальный репозиторий уже готов к публикации.",
+                    "GitHub CLI (gh) not found. The local repository is ready to publish.",
+                ),
             );
-            send(tx, "Скачайте gh: https://cli.github.com/");
-            send(tx, "После установки выполните в терминале: gh auth login");
-            send(tx, "Затем нажмите «Опубликовать на GitHub» ещё раз.");
-            return Err(
-                "gh не установлен — локальный git готов, но автоматическая публикация недоступна."
-                    .into(),
+            send(tx, tr(lang, "Скачайте gh: https://cli.github.com/", "Download gh: https://cli.github.com/"));
+            send(
+                tx,
+                tr(
+                    lang,
+                    "После установки выполните в терминале: gh auth login",
+                    "After installing, run in a terminal: gh auth login",
+                ),
             );
+            send(
+                tx,
+                tr(
+                    lang,
+                    "Затем нажмите «Опубликовать на GitHub» ещё раз.",
+                    "Then press “Publish to GitHub” again.",
+                ),
+            );
+            return Err(tr(
+                lang,
+                "gh не установлен — локальный git готов, но автоматическая публикация недоступна.",
+                "gh is not installed — the local git repo is ready, but automatic publishing is unavailable.",
+            )
+            .into());
         }
     };
-    send(tx, format!("Найден {}", gh_version.lines().next().unwrap_or("gh")));
+    send(
+        tx,
+        format!(
+            "{} {}",
+            tr(lang, "Найден", "Found"),
+            gh_version.lines().next().unwrap_or("gh")
+        ),
+    );
 
     let has_token = !token.trim().is_empty();
     if has_token {
-        send(tx, "Использую токен из поля (GH_TOKEN), авторизация не требуется.");
+        send(
+            tx,
+            tr(
+                lang,
+                "Использую токен из поля (GH_TOKEN), авторизация не требуется.",
+                "Using the token from the field (GH_TOKEN); no login required.",
+            ),
+        );
     } else if gh(&dir, &["auth", "status"], "").is_err() {
-        send(tx, "gh не авторизован.");
-        send(tx, "Выполните в терминале: gh auth login");
-        send(tx, "Либо вставьте Personal Access Token в поле «Токен» (права repo).");
-        return Err("Нужна авторизация GitHub: gh auth login или токен.".into());
+        send(tx, tr(lang, "gh не авторизован.", "gh is not authenticated."));
+        send(
+            tx,
+            tr(
+                lang,
+                "Выполните в терминале: gh auth login",
+                "Run in a terminal: gh auth login",
+            ),
+        );
+        send(
+            tx,
+            tr(
+                lang,
+                "Либо вставьте Personal Access Token в поле «Токен» (права repo).",
+                "Or paste a Personal Access Token into the “Token” field (repo scope).",
+            ),
+        );
+        return Err(tr(
+            lang,
+            "Нужна авторизация GitHub: gh auth login или токен.",
+            "GitHub authentication required: gh auth login or a token.",
+        )
+        .into());
     }
 
     let login = gh(&dir, &["api", "user", "--jq", ".login"], token)
         .map(|s| s.trim().to_string())
         .unwrap_or_default();
     if !login.is_empty() {
-        send(tx, format!("Аккаунт GitHub: {login}"));
+        send(
+            tx,
+            format!("{} {login}", tr(lang, "Аккаунт GitHub:", "GitHub account:")),
+        );
     }
 
     // 3. Создание репозитория и push
@@ -254,7 +345,14 @@ fn publish_inner(
 
     let has_origin = git(&dir, &["remote", "get-url", "origin"]).is_ok();
     if has_origin {
-        send(tx, "Remote origin уже настроен — делаю push…");
+        send(
+            tx,
+            tr(
+                lang,
+                "Remote origin уже настроен — делаю push…",
+                "Remote origin is already configured — pushing…",
+            ),
+        );
         let branch = git(&dir, &["branch", "--show-current"])?;
         let branch = if branch.trim().is_empty() {
             "main".to_string()
@@ -267,7 +365,14 @@ fn publish_inner(
         if let Err(e) = gh(&dir, &args, token) {
             let lower = e.to_lowercase();
             if lower.contains("already exists") || lower.contains("already_exists") {
-                send(tx, "Репозиторий уже существует — настраиваю remote и пушу.");
+                send(
+                    tx,
+                    tr(
+                        lang,
+                        "Репозиторий уже существует — настраиваю remote и пушу.",
+                        "Repository already exists — configuring the remote and pushing.",
+                    ),
+                );
                 let login = if login.is_empty() {
                     gh(&dir, &["api", "user", "--jq", ".login"], token)?
                         .trim()
@@ -306,6 +411,6 @@ fn publish_inner(
             }
         });
 
-    send(tx, format!("Готово: {url}"));
+    send(tx, format!("{} {url}", tr(lang, "Готово:", "Done:")));
     Ok(url)
 }

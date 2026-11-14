@@ -1,119 +1,179 @@
-# ADB Wizard
+<div align="center">
 
-GUI-монитор Android-устройства через ADB на Rust. Показывает нагрузку, память, батарею, накопитель, сеть, топ процессов, экран телефона и даёт командную строку для `adb shell`. Есть кнопка публикации проекта на GitHub.
+# ⚡ ADB Wizard
 
-**Репозиторий:** https://github.com/AmazingCoderA/adb-wizard
+**Android device monitor over ADB — CPU, apps, live screen and shell in one window.**
 
-![Обзор](docs/screenshot-overview.png)
+[![Release](https://img.shields.io/github/v/release/AmazingCoderA/adb-wizard?style=for-the-badge&color=FF9800&label=release)](https://github.com/AmazingCoderA/adb-wizard/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/AmazingCoderA/adb-wizard/ci.yml?style=for-the-badge&label=CI)](https://github.com/AmazingCoderA/adb-wizard/actions/workflows/ci.yml)
+[![Rust](https://img.shields.io/badge/Rust-2021-000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![egui](https://img.shields.io/badge/UI-egui%200.31-FF6B00?style=for-the-badge)](https://github.com/emilk/egui)
+[![License](https://img.shields.io/badge/license-MIT-2EA043?style=for-the-badge)](LICENSE)
 
-![Процессы](docs/screenshot-processes.png)
+[Русская версия](README.ru.md) · [Features](#-features) · [Themes](#-themes) · [Quick start](#-quick-start) · [Publishing](#-publishing-to-github)
 
-> На скриншотах — демонстрационное устройство (mock ADB), а не реальный телефон.
+</div>
 
-## Возможности
+---
 
-- **Обзор** — CPU, RAM, батарея (уровень, температура, статус), `/data`, uptime, скорость сети, живые графики.
-- **Процессы** — что именно потребляет CPU (`dumpsys cpuinfo`) и память (`dumpsys meminfo`, PSS).
-- **Экран** — снимок экрана телефона, автообновление, сохранение PNG, кнопки «Домой / Назад / Недавние».
-- **Консоль** — `adb shell` с историей вывода и быстрыми командами: батарея, память, пакеты, логи, свойства, диск, топ CPU, яркость.
-- **Быстрые действия** — домой, назад, недавние, питание, пробуждение, громкость, скриншот, перезагрузка с подтверждением.
-- **Wi-Fi** — подключение по адресу `IP:5555`.
-- **GitHub** — кнопка создаёт git-коммит и публикует репозиторий через GitHub CLI (`gh`).
+**ADB Wizard** is a lightweight native Rust app that shows what is happening on an Android device right now: CPU load, memory, battery, storage, network, top processes, the phone screen with tap control, and an `adb shell` console. No web UI and no heavy runtime — a single executable.
 
-## Требования
+![Overview](docs/screenshot-overview.png)
 
-- Windows 10/11 (приложение использует системные шрифты Windows; на других ОС тоже должно собираться).
-- Rust (nightly или stable).
-- [Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) — `adb` должен быть в `PATH`.
-- На телефоне: «Для разработчиков» → «Отладка по USB», подтвердить ключ на компьютере.
-- Для публикации: [Git](https://git-scm.com/download/win) и [GitHub CLI](https://cli.github.com/), авторизованный через `gh auth login`.
+> Screenshots use a demo device (mock ADB), not a real phone.
 
-## Запуск
+## 📥 Download
 
-```powershell
+| OS | File |
+|---|---|
+| **Windows 10/11** (x86_64) | [adb-wizard-windows-x86_64.exe](https://github.com/AmazingCoderA/adb-wizard/releases/latest/download/adb-wizard-windows-x86_64.exe) |
+| **Linux** (x86_64) | [adb-wizard-linux-x86_64](https://github.com/AmazingCoderA/adb-wizard/releases/latest/download/adb-wizard-linux-x86_64) |
+| **macOS** (Apple Silicon) | [adb-wizard-macos-aarch64](https://github.com/AmazingCoderA/adb-wizard/releases/latest/download/adb-wizard-macos-aarch64) |
+| **macOS** (Intel) | [adb-wizard-macos-x86_64](https://github.com/AmazingCoderA/adb-wizard/releases/latest/download/adb-wizard-macos-x86_64) |
+| **FreeBSD** (best-effort) | [adb-wizard-freebsd-x86_64](https://github.com/AmazingCoderA/adb-wizard/releases/latest/download/adb-wizard-freebsd-x86_64) |
+
+All builds are produced by GitHub Actions from the tagged source. FreeBSD is built on a best-effort basis and may be missing in some releases.
+
+## ✨ Features
+
+| | |
+|---|---|
+| 📊 **Overview** | Real CPU load from `/proc/stat` deltas, RAM, battery level/temperature/status, `/data`, uptime, network throughput and live sparklines |
+| 🔥 **Processes** | Top CPU consumers (`dumpsys cpuinfo`) and top memory consumers (`dumpsys meminfo`, PSS) with bars |
+| 📦 **Apps** | User app list with search; open system app settings, force stop, clear data, disable/enable, uninstall, and read `dumpsys package` info |
+| 📱 **Screen** | Live screen streaming (150–3000 ms interval), tap-to-control, Home/Back/Recents, save PNG |
+| 🎛️ **Custom buttons** | Add/edit/remove your own buttons with any `adb shell` command; presets for Play/Pause, Menu, Camera, volume |
+| ⌨️ **Console** | Full `adb shell` with output history and quick commands (battery, memory, packages, logs, properties, disk, top CPU) |
+| 🧾 **Tech info** | `getprop`, `ip addr`, `df`, `uname`, battery, display and CPU info in one dump |
+| 📶 **Ping** | ADB round-trip and device-to-internet ping (`8.8.8.8`) with one click |
+| 🚀 **GitHub** | Publish the project with one button through GitHub CLI (`gh`) |
+| 🎨 **Themes & languages** | Five accent palettes and a Russian/English UI switch |
+
+## 🎨 Themes
+
+Switch themes in the top-right corner of the tab row. The accent color drives the title, active tab, charts, process bars and primary buttons.
+
+| Theme | Accent | Mood |
+|---|---|---|
+| **Graphite** | `#FF9800` orange | warm dark interface, default |
+| **Ocean** | `#38BDF8` sky blue | cool dark blue |
+| **Emerald** | `#34D399` mint green | calm dark green |
+| **Violet** | `#A78BFA` lavender | high-contrast purple |
+| **Light** | `#2563EB` blue | bright theme for daylight |
+
+<p align="center">
+  <img src="docs/screenshot-ocean.png" alt="Ocean theme" width="49%">
+  <img src="docs/screenshot-light.png" alt="Light theme" width="49%">
+</p>
+
+## 🚀 Quick start
+
+### Prebuilt binary
+
+1. Download the archive or executable for your OS from [Releases](https://github.com/AmazingCoderA/adb-wizard/releases/latest).
+2. Make sure `adb` is available in `PATH` (or set the `ADB` environment variable).
+3. Connect the phone over USB with USB debugging enabled and start the app.
+
+### From source
+
+```bash
+git clone https://github.com/AmazingCoderA/adb-wizard.git
+cd adb-wizard
 cargo run --release
 ```
 
-Готовый exe: `target\release\adb-wizard.exe`. Готовые сборки также лежат в [Releases](https://github.com/AmazingCoderA/adb-wizard/releases/latest). Для работы exe всё равно нужен `adb` в `PATH` (или переменная `ADB`).
+The binary appears in `target/release/`.
 
-Если `adb` лежит не в `PATH`, укажите путь через переменную окружения:
+If `adb` is not in `PATH`, point to it explicitly:
 
 ```powershell
 $env:ADB = "C:\platform-tools\adb.exe"
 cargo run --release
 ```
 
-## Как пользоваться
+```bash
+export ADB=/opt/android-sdk/platform-tools/adb
+cargo run --release
+```
 
-1. Подключите телефон по USB и включите отладку.
-2. Запустите приложение — устройство появится в списке, мониторинг стартует сам.
-3. Вкладка **Процессы** показывает, что ест CPU и память.
-4. Вкладка **Экран** — копия экрана телефона (обновляется по кнопке или автоматически).
-5. Вкладка **Консоль** — любые команды `adb shell`, например `dumpsys battery` или `logcat -d -t 200`.
+## 📋 Requirements
 
-### Подключение по Wi-Fi
+- **Windows 10/11**, **Linux** (X11/Wayland), **macOS** or **FreeBSD**.
+- **Rust** stable, edition 2021.
+- **[Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools)** — `adb` in `PATH`.
+- On the phone: Developer options → USB debugging, then confirm the key on the computer.
+- For publishing: [Git](https://git-scm.com/downloads) and [GitHub CLI](https://cli.github.com/) authorized via `gh auth login`.
 
-Один раз по USB:
+Linux build dependencies (Debian/Ubuntu):
 
-```powershell
+```bash
+sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+  libxkbcommon-dev libgl1-mesa-dev
+```
+
+## 🕹️ Usage
+
+1. Connect the phone over USB and enable debugging.
+2. Start the app — the device appears in the list and monitoring starts automatically.
+3. **Processes** shows what is eating CPU and memory.
+4. **Apps** lets you search, inspect and manage user applications.
+5. **Screen** streams the phone screen; enable **Tap control** to click through to the device.
+6. **Info** loads a full technical dump and can ping the device and the internet.
+7. **Console** runs any `adb shell` command, for example `dumpsys battery` or `logcat -d -t 200`.
+8. **GitHub** publishes the project in one click.
+
+### 📶 Wi-Fi connection
+
+Once over USB:
+
+```bash
 adb tcpip 5555
 ```
 
-Дальше в приложении введите `IP_ТЕЛЕФОНА:5555` и нажмите «Подключить». Телефон и компьютер должны быть в одной сети. На Android 11+ для беспроводной отладки может понадобиться `adb pair`.
+Then enter `PHONE_IP:5555` in the app and press **Connect**. The phone and computer must be on the same network. On Android 11+ wireless debugging may require `adb pair`.
 
-## Публикация на GitHub
+## 🐙 Publishing to GitHub
 
-Вкладка **GitHub** → имя репозитория → «Опубликовать на GitHub».
+Tab **GitHub** → repository name → **Publish to GitHub**.
 
-Что делает кнопка:
+What the button does:
 
-1. `git init -b main`, если репозитория ещё нет.
-2. `git add -A` и коммит.
-3. `gh repo create <имя> --public/--private --source . --remote origin --push`.
-4. Показывает ссылку на созданный репозиторий.
+1. `git init -b main` if the repository does not exist yet.
+2. `git add -A` and commit.
+3. `gh repo create <name> --public/--private --source . --remote origin --push`.
+4. Shows the link to the created repository.
 
-Авторизация — любым из двух способов:
+Authorization, either way:
 
-- выполнить `gh auth login` один раз в терминале;
-- вставить Personal Access Token с правом `repo` в поле **Токен GitHub** (токен хранится только в памяти и не пишется на диск).
+- run `gh auth login` once in a terminal;
+- paste a Personal Access Token with the `repo` scope into the **GitHub token** field (the token is kept in memory only).
 
-Приложение ищет `gh` в `PATH`, в `%LOCALAPPDATA%\Programs\GitHub CLI\bin\gh.exe`, в `%ProgramFiles%\GitHub CLI` и рядом с exe. Если `gh` не установлен, приложение всё равно подготовит локальный git-репозиторий и покажет инструкции. Кнопка «Создать токен» открывает страницу GitHub с уже выбранным scope `repo`.
+The app looks for `gh` in `PATH`, `%LOCALAPPDATA%\Programs\GitHub CLI\bin\gh.exe`, `%ProgramFiles%\GitHub CLI` and next to the executable. If `gh` is missing, the app still prepares a local git repository and prints instructions. The **Create token** button opens GitHub with the `repo` scope preselected.
 
-Вручную:
-
-```powershell
-git init -b main
-git add -A
-git commit -m "ADB Wizard: initial commit"
-gh repo create adb-wizard --public --source . --remote origin --push
-```
-
-Без `gh`:
-
-```powershell
-git remote add origin https://github.com/ВАШ_ЛОГИН/adb-wizard.git
-git push -u origin main
-```
-
-## Структура проекта
+## 🧱 Project layout
 
 ```
 src/
-  main.rs      — запуск окна
-  app.rs       — интерфейс egui и состояние приложения
-  adb.rs       — запуск adb, сбор снимка, скриншоты, фоновый монитор
-  parsers.rs   — парсеры вывода Android + unit-тесты
-  publish.rs   — git/gh публикация
+  main.rs      — window and viewport setup
+  app.rs       — egui UI, themes, tabs and application state
+  adb.rs       — adb invocation, snapshots, screenshots, background monitor
+  parsers.rs   — Android output parsers + unit tests
+  i18n.rs      — Russian/English strings
+  publish.rs   — git/gh publishing
+.github/
+  workflows/ci.yml      — test and build on Windows, Linux, macOS, FreeBSD
+  workflows/release.yml — multi-OS release assets on tag push
 ```
 
-## Диагностика
+## 🩺 Troubleshooting
 
-- **adb не найден** — добавьте platform-tools в `PATH` или задайте `ADB`.
-- **unauthorized** — подтвердите запрос отладки на экране телефона.
-- **offline** — переподключите кабель, выполните `adb kill-server` и `adb start-server`.
-- **Нет данных CPU/памяти** — некоторые прошивки ограничивают `dumpsys`; попробуйте команды из вкладки «Консоль» вручную.
-- **Скриншот не снимается** — приложение автоматически пробует запасной способ через `/sdcard`.
+- **adb not found** — add platform-tools to `PATH` or set `ADB`.
+- **unauthorized** — confirm the debugging prompt on the phone screen.
+- **offline** — reconnect the cable, run `adb kill-server` and `adb start-server`.
+- **No CPU/memory data** — some firmware restricts `dumpsys`; try the commands manually in **Console**.
+- **Screenshot fails** — the app automatically falls back to the `/sdcard` method.
+- **Screen blinking after a command** — check whether a custom button or console command toggles the screen (`input keyevent 26`), and report the exact command in an issue.
 
-## Лицензия
+## 📄 License
 
-MIT
+[MIT](LICENSE)

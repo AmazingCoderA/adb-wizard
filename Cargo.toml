@@ -1,8 +1,8 @@
 [package]
 name = "adb-wizard"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-description = "Монитор Android-устройства через ADB с графиками, процессами, скриншотом и консолью"
+description = "Монитор Android-устройства через ADB: нагрузка, приложения, экран, трансляция и консоль"
 license = "MIT"
 
 [dependencies]
