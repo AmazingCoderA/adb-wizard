@@ -24,9 +24,7 @@ jobs:
             artifact: adb-wizard-windows-x86_64.exe
           - os: ubuntu-latest
             artifact: adb-wizard-linux-x86_64
-          - os: macos-13
-            artifact: adb-wizard-macos-x86_64
-          - os: macos-14
+          - os: macos-latest
             artifact: adb-wizard-macos-aarch64
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +34,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libgl1-mesa-dev
+          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libwayland-dev libgl1-mesa-dev
       - name: cargo build --release
         run: cargo build --release
       - name: Rename artifact (Windows)
@@ -51,32 +49,9 @@ jobs:
           path: ${{ matrix.artifact }}
           if-no-files-found: error
 
-  freebsd:
-    name: Best-effort build (FreeBSD)
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build on FreeBSD
-        uses: vmactions/freebsd-vm@v1
-        with:
-          usesh: true
-          prepare: |
-            pkg install -y rust
-          run: |
-            cargo build --release
-            cp target/release/adb-wizard adb-wizard-freebsd-x86_64
-      - uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: adb-wizard-freebsd-x86_64
-          path: adb-wizard-freebsd-x86_64
-          if-no-files-found: warn
-
   publish:
     name: Publish release
-    needs: [build, freebsd]
-    if: needs.build.result == 'success'
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

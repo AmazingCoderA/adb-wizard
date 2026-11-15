@@ -29,10 +29,8 @@
 | **Windows 10/11** (x86_64) | [adb-wizard-windows-x86_64.exe](https://github.com/AmazingCoderA/adb-wizard/releases/latest/download/adb-wizard-windows-x86_64.exe) |
 | **Linux** (x86_64) | [adb-wizard-linux-x86_64](https://github.com/AmazingCoderA/adb-wizard/releases/latest/download/adb-wizard-linux-x86_64) |
 | **macOS** (Apple Silicon) | [adb-wizard-macos-aarch64](https://github.com/AmazingCoderA/adb-wizard/releases/latest/download/adb-wizard-macos-aarch64) |
-| **macOS** (Intel) | [adb-wizard-macos-x86_64](https://github.com/AmazingCoderA/adb-wizard/releases/latest/download/adb-wizard-macos-x86_64) |
-| **FreeBSD** (best-effort) | [adb-wizard-freebsd-x86_64](https://github.com/AmazingCoderA/adb-wizard/releases/latest/download/adb-wizard-freebsd-x86_64) |
 
-Все сборки делает GitHub Actions из исходников тега. FreeBSD собирается по возможности и может отсутствовать в некоторых релизах.
+Все сборки делает GitHub Actions из исходников тега. macOS собирается для Apple Silicon; сборки для Intel macOS пока не предоставляются.
 
 ## ✨ Возможности
 
@@ -100,7 +98,7 @@ cargo run --release
 
 ## 📋 Требования
 
-- **Windows 10/11**, **Linux** (X11/Wayland), **macOS** или **FreeBSD**.
+- **Windows 10/11**, **Linux** (X11/Wayland) или **macOS** (Apple Silicon).
 - **Rust** stable, edition 2021.
 - **[Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools)** — `adb` в `PATH`.
 - На телефоне: «Для разработчиков» → «Отладка по USB», подтвердить ключ на компьютере.
@@ -163,7 +161,7 @@ src/
   i18n.rs      — русские и английские строки
   publish.rs   — git/gh публикация
 .github/
-  workflows/ci.yml      — тесты и сборка на Windows, Linux, macOS, FreeBSD
+  workflows/ci.yml      — тесты и сборка на Windows, Linux и macOS
   workflows/release.yml — мультиплатформенные ассеты релиза по тегу
 ```
 
