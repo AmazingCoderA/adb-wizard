@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.1
+
+### Added
+
+- **GPU graph** on the overview: best-effort load from Adreno/Mali sysfs
+  (`gpu_busy_percentage`, `gpubusy`, `utilisation`, devfreq), shown as a live
+  sparkline with the current percentage.
+- **Three more light themes**: Sand (warm beige), Mint (light green) and Rose
+  (light pink), alongside the existing Light theme.
+
+### Fixed
+
+- CPU load no longer double-counts `guest`/`guest_nice` ticks from `/proc/stat`
+  and is smoothed over samples to avoid jitter.
+- Sparkline point counters are localized (RU/EN).
+
 ## 0.2.0
 
 ### Added

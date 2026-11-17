@@ -1,9 +1,9 @@
 //! Запуск adb и сбор снимка состояния устройства.
 
 use crate::parsers::{
-    parse_battery, parse_cpuinfo, parse_device_info, parse_devices, parse_df, parse_meminfo,
-    parse_meminfo_top, parse_net, parse_packages, parse_ping_avg, parse_proc_stat, parse_uptime,
-    split_marked, BatteryInfo, Device, DeviceInfo, ProcStat,
+    parse_battery, parse_cpuinfo, parse_device_info, parse_devices, parse_df, parse_gpu_usage,
+    parse_meminfo, parse_meminfo_top, parse_net, parse_packages, parse_ping_avg, parse_proc_stat,
+    parse_uptime, split_marked, BatteryInfo, Device, DeviceInfo, ProcStat,
 };
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -25,6 +25,12 @@ echo __ADBW_DF__; df -k /data; \
 echo __ADBW_NET__; cat /proc/net/dev; \
 echo __ADBW_BAT__; dumpsys battery; \
 echo __ADBW_CPU__; dumpsys cpuinfo; \
+echo __ADBW_GPU__; \
+cat /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage 2>/dev/null; \
+cat /sys/class/kgsl/kgsl-3d0/gpubusy 2>/dev/null; \
+cat /sys/class/misc/mali0/device/utilisation 2>/dev/null; \
+cat /sys/class/devfreq/*gpu*/gpu_busy_percentage 2>/dev/null; \
+cat /sys/class/devfreq/*gpu*/load 2>/dev/null; \
 echo __ADBW_MEMTOP__; dumpsys meminfo | head -n 100; \
 echo __ADBW_END__";
 
@@ -46,6 +52,7 @@ pub struct Snapshot {
     pub cpu_percent: Option<f32>,
     pub cpu_total_ticks: Option<u64>,
     pub cpu_idle_ticks: Option<u64>,
+    pub gpu_percent: Option<f32>,
     pub cores: usize,
     pub ram_total_kb: Option<u64>,
     pub ram_used_kb: Option<u64>,
@@ -206,6 +213,9 @@ pub fn collect_snapshot(serial: &str) -> Snapshot {
         let (total, procs) = parse_cpuinfo(v);
         snap.cpu_percent = total;
         snap.top_cpu = procs;
+    }
+    if let Some(v) = m.get("GPU") {
+        snap.gpu_percent = parse_gpu_usage(v);
     }
     if let Some(v) = m.get("MEMTOP") {
         snap.top_mem = parse_meminfo_top(v);

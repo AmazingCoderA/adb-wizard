@@ -36,7 +36,7 @@ All builds are produced by GitHub Actions from the tagged source. macOS builds t
 
 | | |
 |---|---|
-| 📊 **Overview** | Real CPU load from `/proc/stat` deltas, RAM, battery level/temperature/status, `/data`, uptime, network throughput and live sparklines |
+| 📊 **Overview** | Real CPU load from `/proc/stat` deltas (guest ticks excluded, smoothed), GPU load from sysfs where available, RAM, battery level/temperature/status, `/data`, uptime, network throughput and live sparklines |
 | 🔥 **Processes** | Top CPU consumers (`dumpsys cpuinfo`) and top memory consumers (`dumpsys meminfo`, PSS) with bars |
 | 📦 **Apps** | User app list with search; open system app settings, force stop, clear data, disable/enable, uninstall, and read `dumpsys package` info |
 | 📱 **Screen** | Live screen streaming (150–3000 ms interval), tap-to-control, Home/Back/Recents, save PNG |
@@ -60,10 +60,17 @@ Switch themes in the top-right corner of the tab row. The accent color drives th
 | **Emerald** | `#34D399` mint green | calm dark green |
 | **Violet** | `#A78BFA` lavender | high-contrast purple |
 | **Light** | `#2563EB` blue | bright theme for daylight |
+| **Sand** | `#C2410C` burnt orange | warm light beige |
+| **Mint** | `#059669` green | light mint |
+| **Rose** | `#DB2777` pink | light rose |
 
 <p align="center">
   <img src="docs/screenshot-ocean.png" alt="Ocean theme" width="49%">
   <img src="docs/screenshot-light.png" alt="Light theme" width="49%">
+</p>
+<p align="center">
+  <img src="docs/screenshot-sand.png" alt="Sand theme" width="49%">
+  <img src="docs/screenshot-rose.png" alt="Rose theme" width="49%">
 </p>
 
 ## 🚀 Quick start

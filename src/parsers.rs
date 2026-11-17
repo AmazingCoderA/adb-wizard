@@ -134,6 +134,9 @@ pub fn parse_uptime(s: &str) -> Option<u64> {
 }
 
 /// Возвращает (всего тиков CPU, тиков простоя) из первой строки `/proc/stat`.
+///
+/// Суммируем только первые восемь полей (`user`…`steal`). Поля `guest` и
+/// `guest_nice` уже входят в `user`/`nice`, поэтому их нельзя прибавлять снова.
 pub fn parse_proc_stat(s: &str) -> Option<(u64, u64)> {
     let line = s.lines().find(|l| l.trim_start().starts_with("cpu "))?;
     let vals: Vec<u64> = line
@@ -144,9 +147,39 @@ pub fn parse_proc_stat(s: &str) -> Option<(u64, u64)> {
     if vals.len() < 4 {
         return None;
     }
-    let total: u64 = vals.iter().sum();
+    let total: u64 = vals.iter().take(8).sum();
     let idle = vals.get(3).copied().unwrap_or(0) + vals.get(4).copied().unwrap_or(0);
     Some((total, idle))
+}
+
+/// Разбирает загрузку GPU из разных sysfs-файлов Android:
+/// `gpu_busy_percentage` (`42 %`), `gpubusy` (`1234 5678`) и `utilisation` (`42`).
+pub fn parse_gpu_usage(s: &str) -> Option<f32> {
+    for line in s.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 2 {
+            if let (Ok(busy), Ok(total)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
+                if total > 0.0 && total >= busy {
+                    return Some(((busy / total) * 100.0).clamp(0.0, 100.0) as f32);
+                }
+            }
+        }
+        let value = line
+            .trim_end_matches('%')
+            .trim()
+            .split('@')
+            .next()
+            .unwrap_or("")
+            .trim();
+        if let Ok(v) = value.parse::<f32>() {
+            return Some(v.clamp(0.0, 100.0));
+        }
+    }
+    None
 }
 
 /// Список пакетов из вывода `pm list packages`.
@@ -517,8 +550,17 @@ mod tests {
 
     #[test]
     fn proc_stat() {
-        let s = "cpu  100 20 30 400 50 10 5 0 0 0\ncpu0 50 10 15 200 25 5 2 0 0 0\n";
+        let s = "cpu  100 20 30 400 50 10 5 0 7 3\ncpu0 50 10 15 200 25 5 2 0 0 0\n";
         assert_eq!(parse_proc_stat(s), Some((615, 450)));
+    }
+
+    #[test]
+    fn gpu_usage() {
+        assert_eq!(parse_gpu_usage("42 %\n"), Some(42.0));
+        let busy = parse_gpu_usage("1234 5678\n").unwrap();
+        assert!((busy - 21.73).abs() < 0.01);
+        assert_eq!(parse_gpu_usage("55@500000000Hz\n"), Some(55.0));
+        assert_eq!(parse_gpu_usage(""), None);
     }
 
     #[test]

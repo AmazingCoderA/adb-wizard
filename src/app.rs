@@ -73,15 +73,21 @@ enum ThemeKind {
     Emerald,
     Violet,
     Light,
+    Sand,
+    Mint,
+    Rose,
 }
 
 impl ThemeKind {
-    const ALL: [ThemeKind; 5] = [
+    const ALL: [ThemeKind; 8] = [
         ThemeKind::Graphite,
         ThemeKind::Ocean,
         ThemeKind::Emerald,
         ThemeKind::Violet,
         ThemeKind::Light,
+        ThemeKind::Sand,
+        ThemeKind::Mint,
+        ThemeKind::Rose,
     ];
 
     fn label(self, lang: Lang) -> &'static str {
@@ -96,6 +102,12 @@ impl ThemeKind {
             (ThemeKind::Violet, Lang::En) => "Violet",
             (ThemeKind::Light, Lang::Ru) => "Светлая",
             (ThemeKind::Light, Lang::En) => "Light",
+            (ThemeKind::Sand, Lang::Ru) => "Песок",
+            (ThemeKind::Sand, Lang::En) => "Sand",
+            (ThemeKind::Mint, Lang::Ru) => "Мята",
+            (ThemeKind::Mint, Lang::En) => "Mint",
+            (ThemeKind::Rose, Lang::Ru) => "Роза",
+            (ThemeKind::Rose, Lang::En) => "Rose",
         }
     }
 
@@ -196,6 +208,63 @@ impl ThemeKind {
                 warn_bg: Color32::from_rgb(255, 247, 222),
                 is_light: true,
             },
+            ThemeKind::Sand => Palette {
+                panel: Color32::from_rgb(247, 242, 234),
+                window: Color32::from_rgb(255, 253, 248),
+                extreme: Color32::from_rgb(239, 231, 218),
+                faint: Color32::from_rgb(243, 237, 227),
+                widget: Color32::from_rgb(237, 228, 213),
+                widget_hover: Color32::from_rgb(227, 215, 196),
+                stroke: Color32::from_rgb(216, 201, 180),
+                text: Color32::from_rgb(43, 36, 28),
+                muted: Color32::from_rgb(122, 106, 87),
+                accent: Color32::from_rgb(194, 65, 12),
+                accent2: Color32::from_rgb(15, 118, 110),
+                on_accent: Color32::from_rgb(255, 255, 255),
+                good: Color32::from_rgb(21, 128, 61),
+                warn: Color32::from_rgb(180, 83, 9),
+                bad: Color32::from_rgb(185, 28, 28),
+                warn_bg: Color32::from_rgb(254, 243, 199),
+                is_light: true,
+            },
+            ThemeKind::Mint => Palette {
+                panel: Color32::from_rgb(240, 247, 243),
+                window: Color32::from_rgb(255, 255, 255),
+                extreme: Color32::from_rgb(227, 239, 232),
+                faint: Color32::from_rgb(235, 244, 239),
+                widget: Color32::from_rgb(225, 238, 231),
+                widget_hover: Color32::from_rgb(213, 231, 221),
+                stroke: Color32::from_rgb(195, 216, 204),
+                text: Color32::from_rgb(23, 37, 30),
+                muted: Color32::from_rgb(95, 122, 108),
+                accent: Color32::from_rgb(5, 150, 105),
+                accent2: Color32::from_rgb(8, 145, 178),
+                on_accent: Color32::from_rgb(255, 255, 255),
+                good: Color32::from_rgb(21, 128, 61),
+                warn: Color32::from_rgb(180, 83, 9),
+                bad: Color32::from_rgb(185, 28, 28),
+                warn_bg: Color32::from_rgb(254, 243, 199),
+                is_light: true,
+            },
+            ThemeKind::Rose => Palette {
+                panel: Color32::from_rgb(250, 243, 246),
+                window: Color32::from_rgb(255, 255, 255),
+                extreme: Color32::from_rgb(243, 228, 235),
+                faint: Color32::from_rgb(247, 235, 240),
+                widget: Color32::from_rgb(242, 225, 233),
+                widget_hover: Color32::from_rgb(234, 211, 222),
+                stroke: Color32::from_rgb(220, 194, 207),
+                text: Color32::from_rgb(42, 24, 32),
+                muted: Color32::from_rgb(125, 95, 109),
+                accent: Color32::from_rgb(219, 39, 119),
+                accent2: Color32::from_rgb(124, 58, 237),
+                on_accent: Color32::from_rgb(255, 255, 255),
+                good: Color32::from_rgb(21, 128, 61),
+                warn: Color32::from_rgb(180, 83, 9),
+                bad: Color32::from_rgb(185, 28, 28),
+                warn_bg: Color32::from_rgb(254, 243, 199),
+                is_light: true,
+            },
         }
     }
 }
@@ -248,9 +317,11 @@ pub struct App {
     status_error: bool,
 
     cpu_hist: VecDeque<f32>,
+    gpu_hist: VecDeque<f32>,
     ram_hist: VecDeque<f32>,
     bat_hist: VecDeque<f32>,
     last_cpu_stat: Option<(u64, u64)>,
+    cpu_smooth: Option<f32>,
     last_net: Option<(u64, u64, Instant)>,
     net_rx_rate: Option<f32>,
     net_tx_rate: Option<f32>,
@@ -315,6 +386,9 @@ impl App {
             "emerald" => ThemeKind::Emerald,
             "violet" => ThemeKind::Violet,
             "light" => ThemeKind::Light,
+            "sand" => ThemeKind::Sand,
+            "mint" => ThemeKind::Mint,
+            "rose" => ThemeKind::Rose,
             _ => ThemeKind::Graphite,
         };
         let lang = if std::env::var("ADBW_LANG")
@@ -355,9 +429,11 @@ impl App {
             status: tr(lang, "Поиск устройств…", "Searching for devices…").to_string(),
             status_error: false,
             cpu_hist: VecDeque::new(),
+            gpu_hist: VecDeque::new(),
             ram_hist: VecDeque::new(),
             bat_hist: VecDeque::new(),
             last_cpu_stat: None,
+            cpu_smooth: None,
             last_net: None,
             net_rx_rate: None,
             net_tx_rate: None,
@@ -474,9 +550,11 @@ impl App {
         self.info = None;
         self.snapshot = None;
         self.cpu_hist.clear();
+        self.gpu_hist.clear();
         self.ram_hist.clear();
         self.bat_hist.clear();
         self.last_cpu_stat = None;
+        self.cpu_smooth = None;
         self.last_net = None;
         self.net_rx_rate = None;
         self.net_tx_rate = None;
@@ -819,8 +897,13 @@ impl App {
             self.last_cpu_stat = Some((total, idle));
         }
         if let Some(v) = cpu_value {
-            push_history(&mut self.cpu_hist, v.clamp(0.0, 100.0));
-            snap.cpu_percent = Some(v);
+            let smoothed = self.cpu_smooth.map(|p| p * 0.55 + v * 0.45).unwrap_or(v);
+            self.cpu_smooth = Some(smoothed);
+            push_history(&mut self.cpu_hist, smoothed.clamp(0.0, 100.0));
+            snap.cpu_percent = Some(smoothed);
+        }
+        if let Some(gpu) = snap.gpu_percent {
+            push_history(&mut self.gpu_hist, gpu.clamp(0.0, 100.0));
         }
         if let (Some(total), Some(used)) = (snap.ram_total_kb, snap.ram_used_kb) {
             if total > 0 {
@@ -1267,7 +1350,7 @@ impl App {
                     let mut picked = self.theme;
                     egui::ComboBox::from_id_salt("theme_combo")
                         .selected_text(self.theme.label(self.lang))
-                        .width(112.0)
+                        .width(132.0)
                         .show_ui(ui, |ui| {
                             for theme in ThemeKind::ALL {
                                 if ui
@@ -1415,10 +1498,11 @@ impl App {
                 .back()
                 .map(|v| battery_color(*v, &pal))
                 .unwrap_or(pal.good);
-            ui.columns(3, |cols| {
+            ui.columns(4, |cols| {
                 sparkline(
                     &mut cols[0],
                     &pal,
+                    self.lang,
                     tr(self.lang, "Загрузка CPU", "CPU load"),
                     &self.cpu_hist,
                     0.0,
@@ -1429,6 +1513,7 @@ impl App {
                 sparkline(
                     &mut cols[1],
                     &pal,
+                    self.lang,
                     tr(self.lang, "Занятая память", "Used memory"),
                     &self.ram_hist,
                     0.0,
@@ -1439,11 +1524,23 @@ impl App {
                 sparkline(
                     &mut cols[2],
                     &pal,
+                    self.lang,
                     tr(self.lang, "Батарея", "Battery"),
                     &self.bat_hist,
                     0.0,
                     100.0,
                     battery_line_color,
+                    "%",
+                );
+                sparkline(
+                    &mut cols[3],
+                    &pal,
+                    self.lang,
+                    "GPU",
+                    &self.gpu_hist,
+                    0.0,
+                    100.0,
+                    pal.warn,
                     "%",
                 );
             });
@@ -2476,6 +2573,7 @@ fn metric_card(
 fn sparkline(
     ui: &mut egui::Ui,
     pal: &Palette,
+    lang: Lang,
     title: &str,
     data: &VecDeque<f32>,
     min: f32,
@@ -2487,10 +2585,12 @@ fn sparkline(
         ui.label(RichText::new(title).strong());
         if let Some(v) = data.back() {
             ui.label(RichText::new(format!("{v:.0}{unit}")).color(color).strong());
+        } else {
+            ui.label(RichText::new(tr(lang, "н/д", "n/a")).color(pal.muted));
         }
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             ui.label(
-                RichText::new(format!("{} точек", data.len()))
+                RichText::new(format!("{} {}", data.len(), tr(lang, "точек", "points")))
                     .small()
                     .color(pal.muted),
             );
